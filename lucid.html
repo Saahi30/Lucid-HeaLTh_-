@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Scanner</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.4/html5-qrcode.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        #reader {
+            width: 100%;
+            max-width: 400px;
+            margin: 20px auto;
+        }
+        #result {
+            margin-top: 20px;
+            word-break: break-all;
+        }
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>QR Code Scanner</h1>
+    
+    <div id="reader"></div>
+    
+    <div class="button-container">
+        <button id="startButton">Start Scanning</button>
+        <button id="stopButton" disabled>Stop Scanning</button>
+    </div>
+
+    <div id="result">Scan a QR code to get started</div>
+
+    <script>
+        const html5QrCode = new Html5Qrcode("reader");
+        const startButton = document.getElementById('startButton');
+        const stopButton = document.getElementById('stopButton');
+        const resultDiv = document.getElementById('result');
+
+        // Default redirect URL (can be changed)
+        const DEFAULT_REDIRECT_URL = 'https://www.google.com';
+
+        startButton.addEventListener('click', startScanning);
+        stopButton.addEventListener('click', stopScanning);
+
+        function startScanning() {
+            // Request camera permissions and start scanning
+            Html5Qrcode.getCameras().then(devices => {
+                if (devices && devices.length) {
+                    const cameraId = devices[0].id;
+                    html5QrCode.start(
+                        cameraId, 
+                        {
+                            fps: 10,    // 10 frames per second
+                            qrbox: 250  // Size of scanning box
+                        }, 
+                        onScanSuccess,
+                        onScanError
+                    )
+                    .then(() => {
+                        startButton.disabled = true;
+                        stopButton.disabled = false;
+                        resultDiv.textContent = 'Scanning... Point camera at QR code';
+                    })
+                    .catch(err => {
+                        resultDiv.textContent = `Error starting scanner: ${err}`;
+                    });
+                }
+            }).catch(err => {
+                resultDiv.textContent = `Error accessing cameras: ${err}`;
+            });
+        }
+
+        function stopScanning() {
+            html5QrCode.stop()
+                .then(() => {
+                    startButton.disabled = false;
+                    stopButton.disabled = true;
+                    resultDiv.textContent = 'Scanning stopped';
+                })
+                .catch(err => {
+                    resultDiv.textContent = `Error stopping scanner: ${err}`;
+                });
+        }
+
+        function onScanSuccess(decodedText, decodedResult) {
+            // Attempt to parse the scanned text as a URL
+            try {
+                const url = new URL(decodedText);
+                // If it's a valid URL, redirect
+                window.location.href = decodedText;
+            } catch (error) {
+                // If not a valid URL, redirect to default URL
+                window.location.href = DEFAULT_REDIRECT_URL;
+            }
+        }
+
+        function onScanError(errorMessage) {
+            // Optional: Handle scan errors
+            console.warn(`QR Code scan error: ${errorMessage}`);
+        }
+    </script>
+</body>
+</html>
